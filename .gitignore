@@ -1,0 +1,8 @@
+node_modules/
+uploads/*.jpg
+uploads/*.png
+uploads/*.jpeg
+reports.json
+users.json
+.vcode/
+.DS_Store

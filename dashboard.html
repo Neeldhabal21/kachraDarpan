@@ -97,6 +97,7 @@
     </div>
 
     <script>
+        const BASE_URL = "https://your-app.onrender.com"; // 🚨 Replace with your actual Render URL
         // Check Auth
         const userData = JSON.parse(localStorage.getItem('kd_user'));
         if (!userData) window.location.href = 'login.html';
@@ -112,7 +113,7 @@
 
         async function loadDashboard() {
             try {
-                const res = await fetch('/api/complaints');
+                const res = await fetch(`${BASE_URL}/api/complaints`);
                 const complaints = await res.json();
                 renderComplaints(complaints);
                 updateStats(complaints);
@@ -133,7 +134,7 @@
             tbody.innerHTML = data.reverse().map(item => `
                 <tr>
                     <td style="font-family: monospace; font-weight: 700; color: var(--primary);">${item.id}</td>
-                    <td><img src="${item.imageUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border);" /></td>
+                    <td><img src="${BASE_URL}${item.imageUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border);" /></td>
                     <td>${item.wasteType}</td>
                     <td style="font-weight: 600;">${item.location}</td>
                     <td style="color: var(--primary); font-weight: 700;">${item.confidence}</td>
@@ -148,7 +149,7 @@
         }
 
         async function updateStatus(id, status) {
-            await fetch(`/api/complaints/${id}`, {
+            await fetch(`${BASE_URL}/api/complaints/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })
