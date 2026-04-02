@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KachraDarpan – AI Smart Waste Management</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- TensorFlow.js & MobileNet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+</head>
+<body>
+  
+  <header>
+    <div style="font-weight: 800; font-size: 1.5rem; letter-spacing: -2px;">Kachra<span class="highlight">Darpan</span></div>
+    <nav>
+      <a href="login.html">Authority Login</a>
+    </nav>
+  </header>
+
+  <main style="display:flex; flex-direction:column; align-items:center; width:100%; padding:0 20px;">
+    <h1>Clean India, <br><span class="highlight">Smartly.</span></h1>
+    <p style="color: var(--text-dim); margin-bottom: 40px; font-size: 1.2rem; text-align: center;">Report waste incidents with AI-driven material analysis.</p>
+
+    <!-- Step 1: Upload (Glass Card) -->
+    <div id="step-1" class="glass-card active-step" style="max-width: 600px; text-align: center;">
+      <div style="border: 2px dashed rgba(16, 185, 129, 0.3); border-radius: 20px; padding: 60px 40px; cursor: pointer;" onclick="document.getElementById('image-input').click()">
+        <div style="font-size: 4rem; margin-bottom: 20px;">📸</div>
+        <h3 style="font-size: 1.5rem; margin-bottom: 10px;">Ready to Report?</h3>
+        <p style="color: var(--text-dim);">Snap a photo of the garbage area.</p>
+        <input type="file" id="image-input" accept="image/*" style="display: none" />
+      </div>
+      
+      <div style="margin-top: 30px; display: flex; justify-content: center; gap: 20px; color: var(--text-dim); font-size: 0.9rem;">
+        <span>Detects Plastic</span>
+        <span>•</span>
+        <span>Organic</span>
+        <span>•</span>
+        <span>Hazardous</span>
+      </div>
+    </div>
+
+    <!-- Step 2: AI Loading (Laser Scan) -->
+    <div id="step-2" class="glass-card" style="display: none; max-width: 600px;">
+      <h3 style="text-align: center; margin-bottom: 20px;">AI Scanning...</h3>
+      <div class="scan-container">
+        <div class="scan-line"></div>
+        <img id="scanning-img-display" style="width: 100%; border-radius: 16px; opacity: 0.6; filter: grayscale(50%);" />
+      </div>
+      <p style="text-align: center; margin-top: 20px; color: var(--primary);">Analyzing material composition & volume...</p>
+    </div>
+
+    <!-- Step 3: Review & Submit -->
+    <div id="step-3" class="glass-card" style="display: none; max-width: 600px;">
+      <h3 style="margin-bottom: 20px;">Analysis Report</h3>
+      
+      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <img id="preview-img" alt="Preview" style="max-width: 200px; border-radius: 12px; border: 1px solid var(--border);" />
+        <div style="flex: 1; min-width: 250px;">
+          <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; border-left: 4px solid var(--primary);">
+            <p style="font-size: 0.8rem; color: var(--text-dim);">MATERIAL DETECTED</p>
+            <p style="font-size: 1.2rem; font-weight: 700;" id="res-type"></p>
+          </div>
+          
+          <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-top: 10px;">
+            <p style="font-size: 0.8rem; color: var(--text-dim);">CONFIDENCE SCORE</p>
+            <p style="font-size: 1.2rem; font-weight: 700; color: var(--primary);" id="res-conf"></p>
+          </div>
+
+          <div class="input-group" style="margin-top: 20px;">
+            <label>Location (Area/Ward)</label>
+            <input type="text" id="location-input" placeholder="e.g., Sector 15, Community Park" />
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-premium" id="btn-submit" style="padding: 14px;">Post Report</button>
+            <button onclick="resetFlow()" style="background:transparent; border:1px solid var(--border); color:var(--text-dim); padding:14px; border-radius:12px; cursor:pointer;">Retake</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Success (Impact Card) -->
+    <div id="step-4" class="glass-card" style="display: none; max-width: 600px; text-align: center;">
+      <div style="font-size: 5rem;">🧬</div>
+      <h2 style="margin: 10px 0;">Complaint Logged!</h2>
+      <p style="color: var(--text-dim);">Your report is now visible on the regional officer dashboard.</p>
+      
+      <div style="background: rgba(16, 185, 129, 0.1); padding: 20px; border-radius: 16px; margin: 30px 0; border: 1px solid var(--primary-glow);">
+        <p style="font-weight: 700; color: var(--primary);">Positive Impact</p>
+        <p style="font-size: 0.9rem;">You helped notify the <strong>Mayor Office</strong> for rapid cleanup.</p>
+        <p style="font-size: 0.8rem; margin-top: 10px; color: var(--text-dim);">Ticket ID: <span id="final-id" class="highlight"></span></p>
+      </div>
+
+      <button class="btn-premium" onclick="resetFlow()">New Report ➔</button>
+    </div>
+  </main>
+
+  <footer style="margin-top: 40px; color: var(--text-dim); font-size: 0.8rem; padding: 40px;">
+    &copy; 2026 KachraDarpan Technologies • DeepMind AI Integrated
+  </footer>
+
+  <script src="ai_logic.js"></script>
+  <script>
+    let currentImage = null;
+    let analysisResult = null;
+
+    const imgInput = document.getElementById('image-input');
+    const previewImg = document.getElementById('preview-img');
+    const scanDisplay = document.getElementById('scanning-img-display');
+
+    function setStep(num) {
+      document.querySelectorAll('.glass-card').forEach(s => s.style.display = 'none');
+      const target = document.getElementById(`step-${num}`);
+      target.style.display = 'block';
+      
+      // Animation entry
+      target.style.opacity = '0';
+      target.style.transform = 'translateY(20px)';
+      requestAnimationFrame(() => {
+        target.style.transition = 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
+        target.style.opacity = '1';
+        target.style.transform = 'translateY(0)';
+      });
+    }
+
+    function resetFlow() {
+      imgInput.value = '';
+      currentImage = null;
+      analysisResult = null;
+      document.getElementById('location-input').value = '';
+      setStep(1);
+    }
+
+    // Handle Image Selection
+    imgInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      currentImage = file;
+      const reader = new FileReader();
+      reader.onload = async (re) => {
+        previewImg.src = re.target.result;
+        scanDisplay.src = re.target.result;
+        setStep(2); // Scanning
+
+        // AI Logic simulation for premium feel
+        setTimeout(async () => {
+          analysisResult = await analyzeWaste(previewImg);
+          document.getElementById('res-type').innerText = analysisResult.type;
+          document.getElementById('res-conf').innerText = analysisResult.confidence;
+          setStep(3); // Result Review
+        }, 2200); // 2.2s scan for excitement
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Handle Final Submission
+    document.getElementById('btn-submit').addEventListener('click', async () => {
+      const location = document.getElementById('location-input').value;
+      if (!location) return alert("Please enter location");
+
+      const btn = document.getElementById('btn-submit');
+      btn.innerText = 'Transmitting...';
+      btn.disabled = true;
+
+      const formData = new FormData();
+      formData.append('image', currentImage);
+      formData.append('location', location);
+      formData.append('wasteType', analysisResult.type);
+      formData.append('confidence', analysisResult.confidence);
+
+      try {
+        const res = await fetch('/api/complaints', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.id) {
+          document.getElementById('final-id').innerText = data.id;
+          setStep(4); // Impact Check
+        }
+      } catch (err) {
+        alert("Transmission Failed. Check backend server.");
+        btn.innerText = 'Post Report';
+        btn.disabled = false;
+      }
+      
+    });
+  </script>
+</body>
+</html>

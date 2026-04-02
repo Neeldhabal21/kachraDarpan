@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | KachraDarpan Identity Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body style="justify-content: center;">
+
+    <header>
+        <div style="font-weight: 800; font-size: 1.5rem; letter-spacing: -1px;">Kachra<span class="highlight">Darpan</span></div>
+        <nav>
+            <a href="login.html">Sign In</a>
+        </nav>
+    </header>
+
+    <div class="glass-card">
+        <h2 style="text-align: center; font-size: 2rem; margin-bottom: 20px;">Identity <span class="highlight">Registration</span></h2>
+        <p style="text-align: center; color: var(--text-dim); margin-bottom: 30px;">Create an official officer account for your jurisdiction.</p>
+
+        <div class="role-selector" id="role-selector">
+            <div class="role-chip active" onclick="selectRole(this, 'Mayor')">Mayor Office</div>
+            <div class="role-chip" onclick="selectRole(this, 'Officer')">Zonal Officer</div>
+            <div class="role-chip" onclick="selectRole(this, 'GramPanchayat')">Gram Panchayat</div>
+        </div>
+
+        <form id="register-form">
+            <div class="input-group">
+                <label>Official Full Name</label>
+                <input type="text" id="fullname" placeholder="e.g., Dr. Rajesh Sharma" required>
+            </div>
+
+            <div class="input-group">
+                <label>Officer ID (Used for Login)</label>
+                <input type="text" id="username" placeholder="e.g., officer_77" required>
+            </div>
+
+            <div class="input-group">
+                <label>Security Access Key</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+                <div class="password-toggle" id="toggle-btn" onclick="togglePassword()">
+                    <svg id="eye-icon" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-premium">
+                Register Account
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"></path></svg>
+            </button>
+        </form>
+
+        <p id="msg" style="text-align: center; margin-top: 20px; font-size: 0.9rem; display: none;"></p>
+        
+        <div style="text-align: center; margin-top: 30px; font-size: 0.9rem; color: var(--text-dim);">
+            Already have an account? <a href="login.html" class="highlight" style="text-decoration: none;">Sign In here</a>
+        </div>
+    </div>
+
+    <footer style="margin-top: 40px; color: var(--text-dim); font-size: 0.8rem;">
+        &copy; 2026 KachraDarpan™ Government of India Initiative
+    </footer>
+
+    <script>
+        let selectedRole = 'Mayor';
+
+        function selectRole(el, role) {
+            document.querySelectorAll('.role-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            selectedRole = role;
+        }
+
+        function togglePassword() {
+            const passInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+            } else {
+                passInput.type = 'password';
+                eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+            }
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('fullname').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const msgEl = document.getElementById('msg');
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, username, password, role: selectedRole })
+                });
+                
+                const data = await res.json();
+
+                if (res.ok) {
+                    msgEl.innerText = data.message + ' Redirecting to login...';
+                    msgEl.style.color = 'var(--primary)';
+                    msgEl.style.display = 'block';
+                    setTimeout(() => window.location.href = 'login.html', 2000);
+                } else {
+                    msgEl.innerText = data.error;
+                    msgEl.style.color = 'var(--danger)';
+                    msgEl.style.display = 'block';
+                }
+            } catch (err) {
+                msgEl.innerText = 'Registration Failed. Check backend server.';
+                msgEl.style.color = 'var(--danger)';
+                msgEl.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | KachraDarpan Regional Intel</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        table { width: 100%; border-collapse: separate; border-spacing: 0 10px; margin-top: 30px; }
+        th { text-align: left; padding: 15px; color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 20px; background: rgba(255, 255, 255, 0.03); color: var(--text-bright); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        td:first-child { border-left: 1px solid var(--border); border-radius: 16px 0 0 16px; }
+        td:last-child { border-right: 1px solid var(--border); border-radius: 0 16px 16px 0; }
+        tr:hover td { background: rgba(255, 255, 255, 0.06); }
+        .badge { padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; }
+        .badge-pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .badge-cleaned { background: rgba(16, 185, 129, 0.1); color: var(--primary); border: 1px solid var(--primary-glow); }
+        .sidebar { background: var(--bg-card); border-right: 1px solid var(--border); padding: 40px 20px; min-height: 100vh; position: sticky; top: 0; }
+    </style>
+</head>
+<body style="flex-direction: row; align-items: stretch;">
+
+    <!-- Left Sidebar -->
+    <div class="sidebar" style="width: 280px; flex-shrink: 0;">
+        <div style="font-weight: 800; font-size: 1.5rem; letter-spacing: -2px; margin-bottom: 50px;">Kachra<span class="highlight">Darpan</span></div>
+        
+        <div style="margin-bottom: 40px;">
+            <p style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 15px;">Authenticated Admin</p>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary); display:grid; place-items:center; font-weight:800; color:var(--bg-dark);" id="user-initial">A</div>
+                <div>
+                    <p style="font-size: 0.9rem; font-weight: 600;" id="user-name">Loading...</p>
+                    <p style="font-size: 0.75rem; color: var(--primary);" id="user-role">Role</p>
+                </div>
+            </div>
+        </div>
+
+        <nav style="display: flex; flex-direction: column; gap: 10px;">
+            <a href="#" class="highlight" style="padding: 12px; background: rgba(16,185,129,0.1); border-radius: 12px; font-size: 0.9rem;">Overview</a>
+            <a href="#" style="padding: 12px; color: var(--text-dim); transition: 0.3s; font-size: 0.9rem;">Analytical Insights</a>
+            <a href="#" style="padding: 12px; color: var(--text-dim); transition: 0.3s; font-size: 0.9rem;">Jurisdictional Audit</a>
+            <hr style="border: 0; border-top: 1px solid var(--border); margin: 10px 0;">
+            <a href="javascript:logout()" style="padding: 12px; color: var(--danger); font-size: 0.9rem;">Secure Logout</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div style="flex: 1; padding: 40px 60px;">
+        <div style="display: flex; justify-content: space-between; align-items: end; margin-bottom: 40px;">
+            <div>
+                <h2 style="font-size: 2rem;">Real-time <span class="highlight">Command Center</span></h2>
+                <p style="color: var(--text-dim);">Monitoring waste reporting across the assigned sector.</p>
+            </div>
+            <div class="stat-card" style="padding: 15px 30px; display:flex; align-items:center; gap:15px; border-radius: 16px;">
+                <div style="text-align: right;">
+                    <p style="font-size: 0.7rem; color: var(--text-dim);">LIVE FEED STATUS</p>
+                    <p style="font-weight: 700; color: var(--primary);">SYSTEM ONLINE</p>
+                </div>
+                <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 10px var(--primary);"></div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-value" id="stats-pending">0</span>
+                <span class="stat-label">Pending Action</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="stats-critical">0</span>
+                <span class="stat-label">High Priority</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" style="color: var(--text-bright);" id="stats-total">0</span>
+                <span class="stat-label">Total Reports</span>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px;">
+            <h3 style="font-size: 1.2rem; margin-bottom: 20px;">Active Reports <span id="report-count" style="color: var(--text-dim); font-size: 0.9rem;">(0)</span></h3>
+            <table id="complaints-table">
+                <thead>
+                    <tr>
+                        <th>Ticket ID</th>
+                        <th>Evidence</th>
+                        <th>Classification</th>
+                        <th>Sector/Ward</th>
+                        <th>AI Confidence</th>
+                        <th>Current Status</th>
+                        <th>Resolution</th>
+                    </tr>
+                </thead>
+                <tbody id="complaints-body">
+                    <!-- Rows Dynamic -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Check Auth
+        const userData = JSON.parse(localStorage.getItem('kd_user'));
+        if (!userData) window.location.href = 'login.html';
+
+        document.getElementById('user-name').innerText = userData.id || 'Administrator';
+        document.getElementById('user-role').innerText = userData.role || 'Regional Officer';
+        document.getElementById('user-initial').innerText = (userData.id || 'A').charAt(0).toUpperCase();
+
+        function logout() {
+            localStorage.removeItem('kd_user');
+            window.location.href = 'login.html';
+        }
+
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/complaints');
+                const complaints = await res.json();
+                renderComplaints(complaints);
+                updateStats(complaints);
+            } catch (err) {
+                console.error("Transmission Error", err);
+            }
+        }
+
+        function updateStats(data) {
+            document.getElementById('stats-total').innerText = data.length;
+            document.getElementById('stats-pending').innerText = data.filter(r => r.status === 'Pending').length;
+            document.getElementById('stats-critical').innerText = data.filter(r => r.wasteType.includes('Hazardous') || r.wasteType.includes('Mixed')).length; // Simulated critical
+            document.getElementById('report-count').innerText = `(${data.length})`;
+        }
+
+        function renderComplaints(data) {
+            const tbody = document.getElementById('complaints-body');
+            tbody.innerHTML = data.reverse().map(item => `
+                <tr>
+                    <td style="font-family: monospace; font-weight: 700; color: var(--primary);">${item.id}</td>
+                    <td><img src="${item.imageUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border);" /></td>
+                    <td>${item.wasteType}</td>
+                    <td style="font-weight: 600;">${item.location}</td>
+                    <td style="color: var(--primary); font-weight: 700;">${item.confidence}</td>
+                    <td><span class="badge ${item.status === 'Pending' ? 'badge-pending' : 'badge-cleaned'}">${item.status.toUpperCase()}</span></td>
+                    <td>
+                        ${item.status === 'Pending' ? 
+                            `<button class="btn-premium" style="padding: 10px 16px; font-size: 0.8rem; border-radius: 10px;" onclick="updateStatus('${item.id}', 'Cleaned')">Mark Cleaned</button>` : 
+                            `<span style="color: var(--text-dim); font-size: 0.8rem;">Resolved ✓</span>`}
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" style="text-align: center; padding: 60px; color: var(--text-dim);">Deep Search: No incidents detected in current jurisdiction.</td></tr>';
+        }
+
+        async function updateStatus(id, status) {
+            await fetch(`/api/complaints/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            loadDashboard();
+        }
+
+        loadDashboard();
+        setInterval(loadDashboard, 6000); // Polling every 6s
+    </script>
+</body>
+</html>

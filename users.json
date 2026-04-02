@@ -1,0 +1,32 @@
+{
+  "mayor_smart": {
+    "password": "india_clean_2026",
+    "role": "Mayor",
+    "name": "Dr. Rajesh Sharma"
+  },
+  "zonal_77": {
+    "password": "officer_pass",
+    "role": "Officer",
+    "name": "Sanjeev Kumar"
+  },
+  "panchayat_admin": {
+    "password": "gram_2026",
+    "role": "GramPanchayat",
+    "name": "Anita Devi"
+  },
+  "test_officer_id": {
+    "password": "pass123",
+    "role": "Officer",
+    "name": "Test Officer"
+  },
+  "25bcs10491": {
+    "password": "0",
+    "role": "Mayor",
+    "name": "Neel Dhabal"
+  },
+  "25BCS11217": {
+    "password": "Sandeep123",
+    "role": "Mayor",
+    "name": "Sandeep"
+  }
+}

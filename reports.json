@@ -1,0 +1,56 @@
+[
+  {
+    "id": "RD-883425",
+    "imageUrl": "/uploads/1775074883421",
+    "location": "Central Park, Ward 5",
+    "wasteType": "Plastic Waste 🥤",
+    "confidence": "98%",
+    "status": "Cleaned",
+    "timestamp": "2026-04-01T20:21:23.425Z"
+  },
+  {
+    "id": "RD-147072",
+    "imageUrl": "/uploads/1775075147069.jpg",
+    "location": "C block ,cu ,140,413",
+    "wasteType": "General/Mixed Waste 🗑️",
+    "confidence": "49%",
+    "status": "Cleaned",
+    "timestamp": "2026-04-01T20:25:47.072Z"
+  },
+  {
+    "id": "RD-191688",
+    "imageUrl": "/uploads/1775075191686.jpeg",
+    "location": "Rode kolkata ,bazar side",
+    "wasteType": "General/Mixed Waste 🗑️",
+    "confidence": "54%",
+    "status": "Cleaned",
+    "timestamp": "2026-04-01T20:26:31.688Z"
+  },
+  {
+    "id": "RD-441557",
+    "imageUrl": "/uploads/1775075441555.jpg",
+    "location": "XXXX",
+    "wasteType": "General Waste 🍽️",
+    "confidence": "16%",
+    "status": "Cleaned",
+    "timestamp": "2026-04-01T20:30:41.557Z"
+  },
+  {
+    "id": "RD-349527",
+    "imageUrl": "/uploads/1775076349525.jpg",
+    "location": "55",
+    "wasteType": "General Mixed Waste 🗑️",
+    "confidence": "16%",
+    "status": "Cleaned",
+    "timestamp": "2026-04-01T20:45:49.527Z"
+  },
+  {
+    "id": "RD-622625",
+    "imageUrl": "/uploads/1775128622617.jpg",
+    "location": "m2",
+    "wasteType": "General Mixed Waste 🗑️",
+    "confidence": "49%",
+    "status": "Cleaned",
+    "timestamp": "2026-04-02T11:17:02.625Z"
+  }
+]
