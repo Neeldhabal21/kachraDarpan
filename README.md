@@ -27,7 +27,7 @@ KachraDarpan is a waste management system that uses AI to analyze garbage and re
    ```bash
    npm start
    ```
-3. Open `http://localhost:4000` in your browser.
+3. Open `https://kachradarpan-backend.onrender.com` in your browser.
 
 ## Features
 
