@@ -37,6 +37,12 @@
             </div>
 
             <div class="input-group">
+                <label>Official Email Address</label>
+                <input type="email" id="email" placeholder="e.g., rajesh.sharma@gmail.com" required>
+                <small style="color: var(--text-dim); font-size: 0.75rem;">This address will be used for secure OTP verification.</small>
+            </div>
+
+            <div class="input-group">
                 <label>Security Access Key</label>
                 <input type="password" id="password" placeholder="••••••••" required>
                 <div class="password-toggle" id="toggle-btn" onclick="togglePassword()">
@@ -65,7 +71,8 @@
     </footer>
 
     <script>
-        const BASE_URL = "https://kachradarpan-backend.onrender.com"; // 🚨 Live Backend URL
+        const BASE_URL = ""; 
+
         let selectedRole = 'Mayor';
 
         function selectRole(el, role) {
@@ -90,6 +97,7 @@
             e.preventDefault();
             const name = document.getElementById('fullname').value;
             const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const msgEl = document.getElementById('msg');
 
@@ -97,7 +105,7 @@
                 const res = await fetch(`${BASE_URL}/api/auth/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, username, password, role: selectedRole })
+                    body: JSON.stringify({ name, username, email, password, role: selectedRole })
                 });
                 
                 const data = await res.json();

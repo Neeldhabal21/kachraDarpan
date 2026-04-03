@@ -2,31 +2,61 @@
   "mayor_smart": {
     "password": "india_clean_2026",
     "role": "Mayor",
-    "name": "Dr. Rajesh Sharma"
+    "name": "Dr. Rajesh Sharma",
+    "email": "mayor.sharma@gmail.com"
   },
   "zonal_77": {
     "password": "officer_pass",
     "role": "Officer",
-    "name": "Sanjeev Kumar"
+    "name": "Sanjeev Kumar",
+    "email": "zonal77.kumar@gmail.com"
   },
   "panchayat_admin": {
     "password": "gram_2026",
     "role": "GramPanchayat",
-    "name": "Anita Devi"
+    "name": "Anita Devi",
+    "email": "panchayat.devi@gmail.com"
   },
   "test_officer_id": {
     "password": "pass123",
     "role": "Officer",
-    "name": "Test Officer"
+    "name": "Test Officer",
+    "email": "test.officer@gmail.com"
   },
   "25bcs10491": {
     "password": "0",
     "role": "Mayor",
-    "name": "Neel Dhabal"
+    "name": "Neel Dhabal",
+    "email": "neeldhabal940@gmail.com"
   },
   "25BCS11217": {
     "password": "Sandeep123",
     "role": "Mayor",
-    "name": "Sandeep"
+    "name": "Sandeep",
+    "email": "sandeep@gmail.com"
+  },
+  "testuser7": {
+    "password": "Password123!",
+    "role": "Mayor",
+    "name": "Test User Seven",
+    "email": "test.user7@gmail.com"
+  },
+  "Neel2112": {
+    "password": "Neel22112",
+    "role": "Mayor",
+    "name": "Neel Dhabal",
+    "email": "neelc@gmail.com"
+  },
+  "neel_21": {
+    "password": "123",
+    "role": "Mayor",
+    "name": "Neel",
+    "email": "neelforgrow@gmail.com"
+  },
+  "neel_06": {
+    "password": "Neel@2006",
+    "role": "Officer",
+    "name": "Mr.Neel Dhabal",
+    "email": "neeldhabal@gmail.com"
   }
 }
