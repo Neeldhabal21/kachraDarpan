@@ -76,7 +76,14 @@
         </div>
 
         <div style="margin-top: 40px;">
-            <h3 style="font-size: 1.2rem; margin-bottom: 20px;">Active Reports <span id="report-count" style="color: var(--text-dim); font-size: 0.9rem;">(0)</span></h3>
+        <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="font-size: 1.2rem;">Active Reports <span id="report-count" style="color: var(--text-dim); font-size: 0.9rem;">(0)</span></h3>
+            <div style="width: 300px; position: relative;">
+                <input type="text" id="dashboard-search" placeholder="Filter by ID, Type, or Ward..." 
+                       style="width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 10px 15px 10px 40px; color: #fff; font-size: 0.85rem;">
+                <span style="position: absolute; left: 15px; top: 52%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
+            </div>
+        </div>
             <table id="complaints-table">
                 <thead>
                     <tr>
@@ -97,7 +104,7 @@
     </div>
 
     <script>
-        const BASE_URL = "https://kachradarpan-backend.onrender.com"; // 🚨 Live Backend URL
+        const BASE_URL = window.location.origin.includes('localhost') ? 'http://localhost:4000' : 'https://kachradarpan-backend.onrender.com';
         // Check Auth
         const userData = JSON.parse(localStorage.getItem('kd_user'));
         if (!userData) window.location.href = 'login.html';
@@ -111,16 +118,34 @@
             window.location.href = 'login.html';
         }
 
+        let allComplaints = [];
+
         async function loadDashboard() {
             try {
                 const res = await fetch(`${BASE_URL}/api/complaints`);
-                const complaints = await res.json();
-                renderComplaints(complaints);
-                updateStats(complaints);
+                allComplaints = await res.json();
+                
+                const searchTerm = document.getElementById('dashboard-search').value.toLowerCase();
+                filterAndRender(searchTerm);
+                updateStats(allComplaints);
             } catch (err) {
                 console.error("Transmission Error", err);
             }
         }
+
+        function filterAndRender(term = "") {
+            const filtered = allComplaints.filter(c => 
+                c.id.toLowerCase().includes(term) || 
+                c.wasteType.toLowerCase().includes(term) || 
+                c.location.toLowerCase().includes(term) ||
+                c.status.toLowerCase().includes(term)
+            );
+            renderComplaints(filtered);
+        }
+
+        document.getElementById('dashboard-search').addEventListener('input', (e) => {
+            filterAndRender(e.target.value.toLowerCase());
+        });
 
         function updateStats(data) {
             document.getElementById('stats-total').innerText = data.length;

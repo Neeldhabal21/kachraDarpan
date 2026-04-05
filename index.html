@@ -17,10 +17,15 @@
       <a href="login.html">Authority Login</a>
     </nav>
   </header>
-a
   <main style="display:flex; flex-direction:column; align-items:center; width:100%; padding:0 20px;">
     <h1>Clean India, <br><span class="highlight">Smartly.</span></h1>
-    <p style="color: var(--text-dim); margin-bottom: 40px; font-size: 1.2rem; text-align: center;">Report waste incidents with AI-driven material analysis.</p>
+    <p style="color: var(--text-dim); margin-bottom: 20px; font-size: 1.2rem; text-align: center;">Report waste incidents or track your existing complaints.</p>
+
+    <!-- Mode Toggle -->
+    <div class="role-selector" style="margin-bottom: 30px; width: 100%; max-width: 400px;">
+      <div class="role-chip active" id="chip-report" onclick="switchMode('report')">New Report</div>
+      <div class="role-chip" id="chip-track" onclick="switchMode('track')">Track Status</div>
+    </div>
 
     <!-- Step 1: Upload (Glass Card) -->
     <div id="step-1" class="glass-card active-step" style="max-width: 600px; text-align: center;">
@@ -94,6 +99,40 @@ a
 
       <button class="btn-premium" onclick="resetFlow()">New Report ➔</button>
     </div>
+
+    <!-- Tracking Section (New) -->
+    <div id="tracking-section" class="glass-card" style="display: none; max-width: 600px;">
+      <h3 style="margin-bottom: 20px; text-align: center;">Track Your Complaint</h3>
+      <div class="input-group">
+        <label>Enter Ticket ID (RD-XXXXXX)</label>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="track-id-input" placeholder="e.g., RD-123456" style="flex: 1;" />
+          <button class="btn-premium" id="btn-track" style="width: auto; padding: 0 25px;">Track</button>
+          <button onclick="resetTracking()" style="background:transparent; border:1px solid var(--border); color:var(--text-dim); padding:0 20px; border-radius:12px; cursor:pointer; font-size: 0.85rem;">Clear</button>
+        </div>
+      </div>
+
+      <div id="track-result" style="display: none; margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
+        <div id="track-status-badge" style="display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; margin-bottom: 15px;"></div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <img id="track-img" style="width: 100%; border-radius: 12px; border: 1px solid var(--border);" />
+          <div>
+            <p style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Location</p>
+            <p id="track-location" style="margin-bottom: 15px; font-weight: 600;"></p>
+            
+            <p style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Waste Type</p>
+            <p id="track-type" style="margin-bottom: 15px; font-weight: 600;"></p>
+            
+            <p style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase;">Reported On</p>
+            <p id="track-date" style="font-size: 0.9rem; color: var(--text-dim);"></p>
+          </div>
+        </div>
+      </div>
+
+      <div id="track-error" style="display: none; margin-top: 20px; color: var(--danger); text-align: center; background: rgba(239, 68, 68, 0.1); padding: 15px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.2);">
+      </div>
+    </div>
   </main>
 
   <footer style="margin-top: 40px; color: var(--text-dim); font-size: 0.8rem; padding: 40px;">
@@ -102,7 +141,7 @@ a
 
   <script src="ai_logic.js"></script>
   <script>
-    const BASE_URL = "https://kachradarpan-backend.onrender.com"; // 🚨 Live Backend URL
+    const BASE_URL = window.location.origin.includes('localhost') ? 'http://localhost:4000' : 'https://kachradarpan-backend.onrender.com';
     let currentImage = null;
     let analysisResult = null;
 
@@ -131,6 +170,40 @@ a
       analysisResult = null;
       document.getElementById('location-input').value = '';
       setStep(1);
+    }
+
+    function resetTracking() {
+      document.getElementById('track-id-input').value = '';
+      document.getElementById('track-result').style.display = 'none';
+      document.getElementById('track-error').style.display = 'none';
+    }
+
+    // Mode Switching
+    function switchMode(mode) {
+      document.getElementById('chip-report').classList.remove('active');
+      document.getElementById('chip-track').classList.remove('active');
+      
+      const reportSteps = ['step-1', 'step-2', 'step-3', 'step-4'];
+      const trackingSec = document.getElementById('tracking-section');
+
+      if (mode === 'report') {
+        document.getElementById('chip-report').classList.add('active');
+        trackingSec.style.display = 'none';
+        resetFlow();
+      } else {
+        document.getElementById('chip-track').classList.add('active');
+        reportSteps.forEach(s => document.getElementById(s).style.display = 'none');
+        trackingSec.style.display = 'block';
+        
+        // Animation
+        trackingSec.style.opacity = '0';
+        trackingSec.style.transform = 'translateY(20px)';
+        requestAnimationFrame(() => {
+          trackingSec.style.transition = 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
+          trackingSec.style.opacity = '1';
+          trackingSec.style.transform = 'translateY(0)';
+        });
+      }
     }
 
     // Handle Image Selection
@@ -187,6 +260,61 @@ a
         btn.disabled = false;
       }
       
+    });
+
+    // Tracking Logic
+    document.getElementById('btn-track').addEventListener('click', async () => {
+      let ticketId = document.getElementById('track-id-input').value.trim();
+      if (!ticketId) return alert("Please enter a Ticket ID");
+
+      // Normalize to uppercase for consistent lookup
+      ticketId = ticketId.toUpperCase();
+      document.getElementById('track-id-input').value = ticketId;
+
+      const btn = document.getElementById('btn-track');
+      const resultDiv = document.getElementById('track-result');
+      const errorDiv = document.getElementById('track-error');
+      
+      btn.innerText = 'Searching...';
+      btn.disabled = true;
+      resultDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/complaints/${ticketId}`);
+        const data = await res.json();
+
+        if (res.ok) {
+          document.getElementById('track-img').src = `${BASE_URL}${data.imageUrl}`;
+          document.getElementById('track-location').innerText = data.location;
+          document.getElementById('track-type').innerText = data.wasteType;
+          document.getElementById('track-date').innerText = new Date(data.timestamp).toLocaleString();
+          
+          const badge = document.getElementById('track-status-badge');
+          badge.innerText = data.status || 'Pending';
+          
+          if (data.status === 'Cleaned') {
+            badge.style.background = 'rgba(16, 185, 129, 0.2)';
+            badge.style.color = 'var(--primary)';
+            badge.style.border = '1px solid var(--primary)';
+          } else {
+            badge.style.background = 'rgba(251, 191, 36, 0.2)';
+            badge.style.color = '#fbbf24';
+            badge.style.border = '1px solid #fbbf24';
+          }
+
+          resultDiv.style.display = 'block';
+        } else {
+          errorDiv.innerText = data.error || "Report Not Found";
+          errorDiv.style.display = 'block';
+        }
+      } catch (err) {
+        errorDiv.innerText = "Connection failed. Please ensure the backend server is running.";
+        errorDiv.style.display = 'block';
+      } finally {
+        btn.innerText = 'Track';
+        btn.disabled = false;
+      }
     });
   </script>
 </body>

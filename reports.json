@@ -52,5 +52,14 @@
     "confidence": "49%",
     "status": "Cleaned",
     "timestamp": "2026-04-02T11:17:02.625Z"
+  },
+  {
+    "id": "RD-912555",
+    "imageUrl": "/uploads/1775421912551.jpg",
+    "location": "Hostel area NC 2",
+    "wasteType": "General Mixed Waste 🗑️",
+    "confidence": "16%",
+    "status": "Cleaned",
+    "timestamp": "2026-04-05T20:45:12.555Z"
   }
 ]

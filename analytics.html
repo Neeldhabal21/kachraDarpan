@@ -90,7 +90,7 @@
     </div>
 
     <script>
-        const BASE_URL = "https://kachradarpan-backend.onrender.com";
+        const BASE_URL = window.location.origin.includes('localhost') ? 'http://localhost:4000' : 'https://kachradarpan-backend.onrender.com';
         const userData = JSON.parse(localStorage.getItem('kd_user'));
         if (!userData) window.location.href = 'login.html';
 
