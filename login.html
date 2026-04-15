@@ -74,7 +74,9 @@
     </footer>
 
     <script>
-        const BASE_URL = "http://localhost:4000"; 
+        const BASE_URL = window.location.origin.includes('localhost') 
+  ? 'http://localhost:4000' 
+  : 'https://kachradarpan-backend.onrender.com';
         let selectedRole = 'Mayor';
         let isOtpSent = false;
 
