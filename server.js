@@ -315,7 +315,7 @@ app.patch('/api/complaints/:id', (req, res) => {
     res.json(reports[index]);
 });
 
-// API: Get Notifications (Mock)
+// API: Get Notifications (Mock).
 app.get('/api/notifications', (req, res) => {
     res.json(notifications);
 });
