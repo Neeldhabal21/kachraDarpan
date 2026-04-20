@@ -49,7 +49,8 @@
                 <label>Verification Code (OTP)</label>
                 <input type="text" id="otp" placeholder="Enter 6-digit code" maxlength="6">
                 <div style="text-align: right; margin-top: 5px;">
-                    <button type="button" id="resend-btn" onclick="requestOtp()" style="background: none; border: none; color: var(--highlight); cursor: pointer; font-size: 0.8rem; padding: 0;">Resend OTP</button>
+                    <button type="button" id="resend-btn" onclick="handleResend()" style="background: none; border: none; color: var(--highlight); cursor: pointer; font-size: 0.8rem; padding: 0;">Resend OTP</button>
+                    <span id="timer-text" style="font-size: 0.8rem; color: var(--text-dim); display: none;">Resend in <span id="timer-count">30</span>s</span>
                 </div>
             </div>
 
@@ -105,12 +106,16 @@
             const errorMsg = document.getElementById('error-msg');
             const otpGroup = document.getElementById('otp-group');
             const btnText = document.getElementById('btn-text');
+            const submitBtn = document.getElementById('submit-btn');
 
             if (!username || !password) {
                 errorMsg.innerText = "Please fill in all fields.";
                 errorMsg.style.display = 'block';
                 return;
             }
+
+            submitBtn.disabled = true;
+            btnText.innerText = "Processing...";
 
             try {
                 const res = await fetch(`${BASE_URL}/api/auth/request-otp`, {
@@ -142,6 +147,8 @@
                     document.getElementById('username').disabled = true;
                     document.getElementById('password').disabled = true;
                     document.querySelectorAll('.role-chip').forEach(c => c.style.opacity = '0.5');
+
+                    startTimer(30);
                 } else {
                     errorMsg.innerText = data.error || 'Failed to request OTP.';
                     errorMsg.style.display = 'block';
@@ -149,6 +156,13 @@
             } catch (err) {
                 errorMsg.innerText = 'Server error. Please ensure the backend is running.';
                 errorMsg.style.display = 'block';
+            } finally {
+                if (!isOtpSent) {
+                    submitBtn.disabled = false;
+                    btnText.innerText = "Request OTP";
+                } else {
+                    submitBtn.disabled = false;
+                }
             }
         }
 
@@ -164,12 +178,19 @@
             const password = document.getElementById('password').value;
             const otp = document.getElementById('otp').value;
             const errorMsg = document.getElementById('error-msg');
+        
 
             if (!otp) {
                 errorMsg.innerText = "Please enter the verification code.";
                 errorMsg.style.display = 'block';
                 return;
             }
+
+            const submitBtn = document.getElementById('submit-btn');
+            const btnText = document.getElementById('btn-text');
+            submitBtn.disabled = true;
+            const originalText = btnText.innerText;
+            btnText.innerText = "Verifying...";
 
             try {
                 const res = await fetch(`${BASE_URL}/api/auth/login`, {
@@ -193,8 +214,40 @@
             } catch (err) {
                 errorMsg.innerText = 'Login error. Please check your connection.';
                 errorMsg.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                btnText.innerText = originalText;
             }
         });
+
+        let timerInterval;
+        function startTimer(seconds) {
+            const resendBtn = document.getElementById('resend-btn');
+            const timerText = document.getElementById('timer-text');
+            const timerCount = document.getElementById('timer-count');
+            
+            resendBtn.style.display = 'none';
+            timerText.style.display = 'inline';
+            timerCount.innerText = seconds;
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                seconds--;
+                timerCount.innerText = seconds;
+                if (seconds <= 0) {
+                    clearInterval(timerInterval);
+                    resendBtn.style.display = 'inline';
+                    timerText.style.display = 'none';
+                }
+            }, 1000);
+        }
+
+        async function handleResend() {
+            const resendBtn = document.getElementById('resend-btn');
+            resendBtn.disabled = true;
+            await requestOtp();
+            // startTimer handles re-enabling/hiding
+        }
     </script>
 </body>
 </html>
