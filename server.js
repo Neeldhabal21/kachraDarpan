@@ -335,7 +335,18 @@ async function sendEmailOTP(email, otp, userName, subjectPrefix) {
             const transporter = nodemailer.createTransport({
                 service: 'gmail',
                 auth: { user: EMAIL_USER, pass: EMAIL_PASS }
-            });
+            });const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+        user: EMAIL_USER,
+        pass: EMAIL_PASS
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000
+});
             await transporter.sendMail({
                 from: `"KachraDarpan Security" <${EMAIL_USER}>`,
                 to: email,
