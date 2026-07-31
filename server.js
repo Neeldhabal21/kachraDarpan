@@ -8,7 +8,8 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { z } = require('zod');
 require('dotenv').config();
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const { requireAuth, requireRole } = require('./middleware/auth');
 const { AuthTokenPromotionListInstance } = require('twilio/lib/rest/accounts/v1/authTokenPromotion');
@@ -328,67 +329,32 @@ app.post('/api/complaints', upload.single('image'), (req, res) => {
 });
 
 // --- EMAIL HELPER ---
+
 async function sendEmailOTP(email, otp, userName, subjectPrefix) {
-    const { EMAIL_USER, EMAIL_PASS } = process.env;
-
-    if (!EMAIL_USER || !EMAIL_PASS) {
-        console.log(
-            `\n[MOCK EMAIL] To: ${email} | Code: ${otp} | Subject: ${subjectPrefix}\n`
-        );
-        return;
-    }
-
     try {
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: true,
-
-            auth: {
-                user: EMAIL_USER,
-                pass: EMAIL_PASS
-            },
-
-            connectionTimeout: 15000,
-            greetingTimeout: 15000,
-            socketTimeout: 20000
-        });
-
-        const info = await transporter.sendMail({
-            from: `"KachraDarpan Security" <${EMAIL_USER}>`,
+        const { data, error } = await resend.emails.send({
+            from: 'KachraDarpan <onboarding@resend.dev>',
             to: email,
             subject: `${subjectPrefix} Code`,
-
             html: `
-                <div style="
-                    font-family: sans-serif;
-                    border: 1px solid #ddd;
-                    padding: 20px;
-                    border-radius: 10px;
-                ">
+                <div style="font-family:sans-serif;padding:20px;">
                     <h2>KachraDarpan Verification</h2>
-
                     <p>Hello ${userName},</p>
-
-                    <p>
-                        Your code is:
-                        <b style="font-size:24px;color:#10b981;">
-                            ${otp}
-                        </b>
-                    </p>
-
+                    <p>Your verification code is:</p>
+                    <h1>${otp}</h1>
                     <p>Valid for 10 minutes.</p>
                 </div>
             `
         });
 
-        console.log("✅ OTP email sent:", info.messageId);
+        if (error) {
+            console.error('Resend error:', error);
+            throw new Error(error.message);
+        }
 
+        console.log('OTP email sent:', data.id);
     } catch (error) {
-        console.error("❌ Mail error:", error);
-
-        // IMPORTANT:
-        // Let request-otp know that sending failed
+        console.error('Email sending failed:', error);
         throw error;
     }
 }
