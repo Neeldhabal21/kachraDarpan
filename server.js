@@ -334,7 +334,7 @@ async function sendEmailOTP(email, otp, userName, subjectPrefix) {
     try {
         const { data, error } = await resend.emails.send({
             from: 'KachraDarpan <onboarding@resend.dev>',
-            to: email,
+            to: 'neeldhabal940@gmail.com',
             subject: `${subjectPrefix} Code`,
             html: `
                 <div style="font-family:sans-serif;padding:20px;">
