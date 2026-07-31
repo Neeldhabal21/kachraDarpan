@@ -105,7 +105,9 @@
 
         async function initAnalytics() {
             try {
-                const res = await fetch(`${BASE_URL}/api/complaints`);
+                const res = await fetch(`${BASE_URL}/api/complaints`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('kd_token') }
+                });
                 const data = await res.json();
                 
                 renderResolutionChart(data);

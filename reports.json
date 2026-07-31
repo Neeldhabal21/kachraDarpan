@@ -61,5 +61,41 @@
     "confidence": "16%",
     "status": "Cleaned",
     "timestamp": "2026-04-05T20:45:12.555Z"
+  },
+  {
+    "id": "RD-531982",
+    "imageUrl": "/uploads/1776801531973.jpg",
+    "location": "Near Gate no 4,Chandigarh University",
+    "wasteType": "Plastic Waste 🥤",
+    "confidence": "72%",
+    "status": "Pending",
+    "timestamp": "2026-04-21T19:58:51.982Z"
+  },
+  {
+    "id": "RD-693472",
+    "imageUrl": "/uploads/1776801693469.jpg",
+    "location": "Hostel area NC 2",
+    "wasteType": "Plastic Waste 🥤",
+    "confidence": "72%",
+    "status": "Pending",
+    "timestamp": "2026-04-21T20:01:33.472Z"
+  },
+  {
+    "id": "RD-117942",
+    "imageUrl": "/uploads/1776802117938.jpg",
+    "location": "Location test",
+    "wasteType": "Plastic Waste 🥤",
+    "confidence": "72%",
+    "status": "Pending",
+    "timestamp": "2026-04-21T20:08:37.942Z"
+  },
+  {
+    "id": "RD-606773",
+    "imageUrl": "/uploads/1776802606766.jpg",
+    "location": "check location",
+    "wasteType": "Plastic Waste 🥤",
+    "confidence": "72%",
+    "status": "Pending",
+    "timestamp": "2026-04-21T20:16:46.773Z"
   }
 ]

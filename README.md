@@ -34,4 +34,4 @@ KachraDarpan is a waste management system that uses AI to analyze garbage and re
 - **AI Analysis**: Uses MobileNet for material classification.
 - **Reporting System**: Real-time waste reporting with image evidence.
 - **Officer Dashboard**: Centralized management for cleanup authorities.
-- **Role-based Access**: Mayor, Zonal Officer, and Gram Panchayat roles.
+- **Role-based Access**: Mayor, Zonal Officer, and Gram Panchayat roles.n

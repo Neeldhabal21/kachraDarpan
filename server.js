@@ -3,323 +3,354 @@ const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
+const { z } = require('zod');
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 
+const { requireAuth, requireRole } = require('./middleware/auth');
+const { AuthTokenPromotionListInstance } = require('twilio/lib/rest/accounts/v1/authTokenPromotion');
+
 const app = express();
 const PORT = process.env.PORT || 4000;
+const JWT_SECRET = process.env.JWT_SECRET || 'kachradarpan_secure_2026';
 
-// Middleware
+// Security Middleware: Rate Limiting
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10,
+    message: { error: 'Too many requests, please try again after 15 minutes' }
+});
+
+const apiLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 100,
+    message: { error: 'Too many requests from this IP' }
+});
+
+// General Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.')); // Serve static files from root
+app.use(express.static('.'));
 app.use('/uploads', express.static('uploads'));
+app.use('/api/', apiLimiter);
 
-// Ensure reports.json exists
+// DB Files Setup
 const reportsFile = path.join(__dirname, 'reports.json');
-if (!fs.existsSync(reportsFile)) {
-    fs.writeFileSync(reportsFile, JSON.stringify([]));
-}
-
-// Ensure users.json exists
 const usersFile = path.join(__dirname, 'users.json');
-if (!fs.existsSync(usersFile)) {
-    // Initial demo users with mock phones
-    const defaultUsers = {
-        'mayor_smart': { password: 'india_clean_2026', role: 'Mayor', name: 'Dr. Rajesh Sharma', phone: '+910000000001' },
-        'zonal_77': { password: 'officer_pass', role: 'Officer', name: 'Sanjeev Kumar', phone: '+910000000002' },
-        'panchayat_admin': { password: 'gram_2026', role: 'GramPanchayat', name: 'Anita Devi', phone: '+910000000003' }
-    };
-    fs.writeFileSync(usersFile, JSON.stringify(defaultUsers, null, 2));
+const auditLogFile = path.join(__dirname, 'audit_log.json');
+
+if (!fs.existsSync(reportsFile)) fs.writeFileSync(reportsFile, JSON.stringify([]));
+if (!fs.existsSync(auditLogFile)) fs.writeFileSync(auditLogFile, JSON.stringify([]));
+
+// Seed Default Users if file is empty or doesn't exist
+const initializeDB = async () => {
+    let users = {};
+    if (fs.existsSync(usersFile)) {
+        try {
+            users = JSON.parse(fs.readFileSync(usersFile));
+        } catch (e) { users = {}; }
+    }
+
+    // Seed Mayor if not exists (for demo/testing promotion)
+    if (!users['mayor_admin']) {
+        const hashedPass = await bcrypt.hash('IndiaClean2026!', 10);
+        users['mayor_admin'] = {
+            password: hashedPass,
+            role: 'mayor',
+            name: 'Chief Mayor Rajesh',
+            email: process.env.EMAIL_USER || 'admin@kachradarpan.in',
+            createdAt: new Date().toISOString()
+        };
+        fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+        console.log('✅ Seeded default mayor user: mayor_admin / IndiaClean2026!');
+    }
+};
+initializeDB();
+
+// Helper Functions
+const readData = (file) => JSON.parse(fs.readFileSync(file));
+const writeData = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2));
+
+function logAudit(action, actor, target, details) {
+    const logs = readData(auditLogFile);
+    logs.push({
+        timestamp: new Date().toISOString(),
+        action,
+        actor,
+        target,
+        details
+    });
+    writeData(auditLogFile, logs);
 }
 
-// Multer Setup for Image Uploads
+// Multer Setup
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
+    destination: (req, file, cb) => cb(null, 'uploads/'),
+    filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage: storage });
 
-// Helper to Read/Write Data
-function readReports() { return JSON.parse(fs.readFileSync(reportsFile)); }
-function writeReports(reports) { fs.writeFileSync(reportsFile, JSON.stringify(reports, null, 2)); }
-
-function readUsers() { return JSON.parse(fs.readFileSync(usersFile)); }
-function writeUsers(users) { fs.writeFileSync(usersFile, JSON.stringify(users, null, 2)); }
-
-// In-Memory Mock Notification Log
-const notifications = [];
-
 // In-Memory OTP Store
-const activeOtps = {}; // Format: { username: { otp: string, expires: number } }
+const activeOtps = {};
 
-// API: Authority Register
-app.post('/api/auth/register', (req, res) => {
-    const { username, password, role, name, email } = req.body;
-    const users = readUsers();
-
-    if (users[username]) {
-        return res.status(400).json({ error: 'Officer ID already registered.' });
-    }
-
-    if (!email) {
-        return res.status(400).json({ error: 'Official email address is required.' });
-    }
-
-    users[username] = { password, role, name, email };
-    writeUsers(users);
-
-    res.status(201).json({ success: true, message: 'Account registered successfully.' });
+// Validation Schemas
+const registerSchema = z.object({
+    username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/, "Username must be alphanumeric"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    name: z.string().min(2),
+    email: z.string().email(),
+    role: z.string().optional()
 });
 
-// Helper for Sending Emails (Real or Mock)
-async function sendEmailOTP(email, otp, userName, subjectPrefix = "Identity Verification") {
-    const { EMAIL_SERVICE, EMAIL_USER, EMAIL_PASS } = process.env;
-    const maskedEmail = email.replace(/^(.)(.*)(.@.*)$/, (_, first, middle, last) => first + middle.replace(/./g, '*') + last);
-
-    if (EMAIL_USER && EMAIL_PASS) {
-        try {
-            const cleanPass = EMAIL_PASS.replace(/\s+/g, '');
-            const transporter = nodemailer.createTransport({
-                service: EMAIL_SERVICE || 'gmail',
-                auth: { user: EMAIL_USER, pass: cleanPass },
-                tls: { rejectUnauthorized: false }
-            });
-
-            await transporter.sendMail({
-                from: `"KachraDarpan Security" <${EMAIL_USER}>`,
-                to: email,
-                subject: `${subjectPrefix} Code`,
-                html: `
-                    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px; margin: auto;">
-                        <h2 style="color: #2e7d32; text-align: center;">KachraDarpan Security</h2>
-                        <p style="color: #333;">Hello <b>${userName}</b>,</p>
-                        <p>You requested a secure verification code. Use the code below to proceed:</p>
-                        <div style="font-size: 2.5rem; font-weight: bold; letter-spacing: 8px; color: #1a1a1a; margin: 30px 0; text-align: center; background: #f4f4f4; padding: 15px; border-radius: 8px;">${otp}</div>
-                        <p style="color: #666; font-size: 0.85rem; border-top: 1px solid #eee; padding-top: 15px;">
-                            This code is valid for 5 minutes. If you did not request this, please secure your account immediately.
-                        </p>
-                    </div>
-                `
-            });
-
-            console.log(`[REAL EMAIL SENT] To: ${email} | Code: ${otp}`);
-            return { success: true, message: `Secure code sent to ${maskedEmail}.` };
-        } catch (error) {
-            console.error('Email Sending Error:', error);
-            throw new Error(`Failed to send verification email: ${error.message}`);
-        }
-    } else {
-        console.log(`\n-----------------------------------------`);
-        console.log(`[MOCK EMAIL SENT] To: ${email} (${userName})`);
-        console.log(`[SUBJECT]: ${subjectPrefix}`);
-        console.log(`[CODE]: ${otp}`);
-        console.log(`[NOTICE]: Add EMAIL_USER and EMAIL_PASS to .env for real Gmail OTP.`);
-        console.log(`-----------------------------------------\n`);
-
-        return { 
-            success: true, 
-            message: `[DEV MODE] Code sent to ${maskedEmail}. Check server console.`,
-            mock: true 
-        };
-    }
-}
-
-// API: Request OTP for Login
-app.post('/api/auth/request-otp', async (req, res) => {
-    const { username, password, role } = req.body;
-    const users = readUsers();
-    
-    const user = users[username];
-    if (user && user.password === password && user.role === role) {
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        activeOtps[username] = { otp, expires: Date.now() + (5 * 60 * 1000) };
-
-        if (!user.email) {
-            return res.status(400).json({ error: 'No official email address linked to this account.' });
-        }
-
-        try {
-            const result = await sendEmailOTP(user.email, otp, user.name, "Login Verification");
-            res.json(result);
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    } else {
-        res.status(401).json({ error: 'Access Denied: Invalid credentials or role mismatch.' });
-    }
+const loginSchema = z.object({
+    username: z.string(),
+    password: z.string(),
+    otp: z.string().length(6)
 });
 
-// API: Forgot Password (Request OTP)
-app.post('/api/auth/forgot-password', async (req, res) => {
-    const { identifier } = req.body; // username or email
-    const users = readUsers();
-    
-    // Find user by username or email
-    const username = Object.keys(users).find(u => u === identifier || users[u].email === identifier);
-    const user = users[username];
+// --- AUTH ROUTES ---
 
-    if (!user) {
-        return res.status(404).json({ error: 'No account found with this ID or Email.' });
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    activeOtps[username] = { 
-        otp, 
-        expires: Date.now() + (5 * 60 * 1000),
-        purpose: 'password-reset'
-    };
-
+app.post('/api/auth/register', authLimiter, async (req, res) => {
     try {
-        const result = await sendEmailOTP(user.email, otp, user.name, "Password Reset");
-        res.json({ ...result, username }); // Send back username for the next step
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        const validatedData = registerSchema.parse(req.body);
+        const users = readData(usersFile);
+
+        if (users[validatedData.username]) {
+            return res.status(400).json({ error: 'Username already registered.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+        
+        // Map frontend roles to backend roles
+        const roleMap = {
+            'Mayor': 'mayor',
+            'Officer': 'zonal_officer',
+            'GramPanchayat': 'gram_panchayat'
+        };
+        const assignedRole = roleMap[validatedData.role] || 'citizen';
+
+        users[validatedData.username] = {
+            password: hashedPassword,
+            role: assignedRole,
+            name: validatedData.name,
+            email: validatedData.email,
+            createdAt: new Date().toISOString()
+        };
+
+        writeData(usersFile, users);
+        logAudit('USER_REGISTER', 'system', validatedData.username, `New ${assignedRole} registered`);
+
+        res.status(201).json({ success: true, message: `Account registered as ${assignedRole}.` });
+    } catch (err) {
+        if (err instanceof z.ZodError) return res.status(400).json({ error: err.issues[0]?.message || err.errors?.[0]?.message || "Validation Error" });
+        console.error("Register Error:", err);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
-// API: Reset Password
-app.post('/api/auth/reset-password', (req, res) => {
-    const { username, otp, newPassword } = req.body;
-    const users = readUsers();
-    const storedOtpData = activeOtps[username];
-
-    if (!storedOtpData || storedOtpData.purpose !== 'password-reset') {
-        return res.status(400).json({ error: 'No reset request found or has expired.' });
-    }
-
-    if (Date.now() > storedOtpData.expires) {
-        delete activeOtps[username];
-        return res.status(400).json({ error: 'Verification code has expired.' });
-    }
-
-    if (storedOtpData.otp !== otp) {
-        return res.status(401).json({ error: 'Invalid verification code.' });
-    }
-
-    // Success: Update password and clear OTP
-    users[username].password = newPassword;
-    writeUsers(users);
-    delete activeOtps[username];
-
-    res.json({ success: true, message: 'Password has been successfully reset. You can now login.' });
-});
-
-// API: Authority Login (Updated with OTP)
-app.post('/api/auth/login', (req, res) => {
-    const { username, password, role, otp } = req.body;
-    const users = readUsers();
+app.post('/api/auth/request-otp', authLimiter, async (req, res) => {
+    const { username, password } = req.body;
+    const users = readData(usersFile);
     
+        const user = users[username];
+    if (user) {
+        let isMatch = false;
+        if (user.password.startsWith('$2')) {
+            isMatch = await bcrypt.compare(password, user.password);
+        } else {
+            isMatch = (password === user.password);
+        }
+
+        if (isMatch) {
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            activeOtps[username] = { otp, expires: Date.now() + (5 * 60 * 1000) };
+
+            try {
+                await sendEmailOTP(user.email, otp, user.name, "Identity Verification");
+                res.json({ success: true, message: 'Code sent to your official email.' });
+            } catch (error) {
+                res.status(500).json({ error: 'Mail service error.' });
+            }
+        } else {
+            res.status(401).json({ error: 'Invalid credentials.' });
+        }
+    } else {
+        res.status(401).json({ error: 'Invalid credentials.' });
+    }
+});
+
+app.post('/api/auth/login', authLimiter, async (req, res) => {
+    try {
+        const { username, password, otp } = loginSchema.parse(req.body);
+        const users = readData(usersFile);
+        const user = users[username];
+        if (!user) return res.status(401).json({ error: 'Invalid credentials.' });
+
+        let isMatch = false;
+        if (user.password.startsWith('$2')) {
+            isMatch = await bcrypt.compare(password, user.password);
+        } else {
+            isMatch = (password === user.password);
+        }
+
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid credentials.' });
+        }
+
+        const storedOtpData = activeOtps[username];
+        if (!storedOtpData || storedOtpData.otp !== otp || Date.now() > storedOtpData.expires) {
+            return res.status(401).json({ error: 'Invalid or expired code.' });
+        }
+
+        delete activeOtps[username];
+
+        const token = jwt.sign(
+            { userId: username, role: user.role.toLowerCase() },
+            JWT_SECRET,
+            { expiresIn: '4h' }
+        );
+
+        res.json({
+            success: true,
+            user: { id: username, role: user.role, name: user.name },
+            token
+        });
+    } catch (err) {
+        if (err instanceof z.ZodError) return res.status(400).json({ error: err.issues[0]?.message || err.errors?.[0]?.message || "Validation Error" });
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Forgot Password Logic
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
+    const { identifier } = req.body; // username or email
+    const users = readData(usersFile);
+    const username = Object.keys(users).find(u => u === identifier || users[u].email === identifier);
+    
+    if (!username) return res.status(404).json({ error: 'Account not found.' });
+
     const user = users[username];
-    
-    // Step 1: Validate Credentials
-    if (!user || user.password !== password || user.role !== role) {
-        return res.status(401).json({ error: 'Access Denied: Invalid credentials.' });
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    activeOtps[username] = { otp, expires: Date.now() + (10 * 60 * 1000), purpose: 'reset' };
+
+    await sendEmailOTP(user.email, otp, user.name, "Password Reset");
+    res.json({ success: true, message: 'Reset code sent.', username });
+});
+
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
+    const { username, otp, newPassword } = req.body;
+    const users = readData(usersFile);
+    const stored = activeOtps[username];
+
+    if (!stored || stored.otp !== otp || stored.purpose !== 'reset' || Date.now() > stored.expires) {
+        return res.status(401).json({ error: 'Invalid or expired reset code.' });
     }
 
-    // Step 2: Validate OTP
-    const storedOtpData = activeOtps[username];
-    
-    if (!storedOtpData) {
-        return res.status(400).json({ error: 'OTP not requested or already expired.' });
-    }
-
-    if (Date.now() > storedOtpData.expires) {
-        delete activeOtps[username];
-        return res.status(400).json({ error: 'OTP has expired. Please request a new one.' });
-    }
-
-    if (storedOtpData.otp !== otp) {
-        return res.status(401).json({ error: 'Invalid OTP code.' });
-    }
-
-    // Success: Clear OTP and return session
+    users[username].password = await bcrypt.hash(newPassword, 10);
+    writeData(usersFile, users);
     delete activeOtps[username];
+
+    logAudit('PASSWORD_RESET', 'system', username, 'User reset their password');
+    res.json({ success: true, message: 'Password updated successfully.' });
+});
+
+// --- ADMIN & RBAC ROUTES ---
+
+app.post('/api/admin/promote', requireAuth, requireRole(['mayor', 'super_admin']), async (req, res) => {
+    const { targetUsername, newRole } = req.body;
+    const users = readData(usersFile);
+
+    if (!users[targetUsername]) return res.status(404).json({ error: 'User not found' });
+    if (targetUsername === req.user.userId) return res.status(400).json({ error: 'Cannot promote self' });
     
-    res.json({
-        success: true,
-        user: { id: username, role: user.role, name: user.name },
-        token: 'TOKEN_' + Date.now()
-    });
+    // Strict Role Policy
+    const allowedRoles = ['zonal_officer', 'gram_panchayat'];
+    if (!allowedRoles.includes(newRole)) return res.status(400).json({ error: 'Invalid target role' });
+
+    const oldRole = users[targetUsername].role;
+    users[targetUsername].role = newRole;
+    writeData(usersFile, users);
+
+    logAudit('ROLE_PROMOTION', req.user.userId, targetUsername, `From ${oldRole} to ${newRole}`);
+    res.json({ success: true, message: `Promoted ${targetUsername} to ${newRole}` });
 });
 
-// API: Submit a Complaint
-app.post('/api/complaints', upload.single('image'), (req, res) => {
-    const { location, wasteType, confidence } = req.body;
-    const file = req.file;
-
-    if (!file || !location || !wasteType) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const reports = readReports();
-    const newReport = {
-        id: 'RD-' + Date.now().toString().slice(-6),
-        imageUrl: `/uploads/${file.filename}`,
-        location,
-        wasteType,
-        confidence: confidence || 'N/A',
-        status: 'Pending',
-        timestamp: new Date().toISOString()
-    };
-
-    reports.push(newReport);
-    writeReports(reports);
-
-    // Mock Notification Logic
-    const notification = {
-        to: 'Mayor Office / Gram Panchayat Officer',
-        subject: `URGENT: New Waste Complaint - ${newReport.id}`,
-        body: `A new waste report has been filed at ${location}. Type: ${wasteType}. View details in the dashboard.`,
-        timestamp: new Date().toISOString()
-    };
-    notifications.push(notification);
-    console.log(`[NOTIFICATION SENT] To: ${notification.to} - Sub: ${notification.subject}`);
-
-    res.status(201).json(newReport);
+app.get('/api/admin/audit-logs', requireAuth, requireRole('mayor'), (req, res) => {
+    res.json(readData(auditLogFile));
 });
 
-// API: Get All Complaints (for Officers)
-app.get('/api/complaints', (req, res) => {
-    const reports = readReports();
-    res.json(reports);
+// --- OPERATIONAL ROUTES ---
+
+app.get('/api/complaints', requireAuth, requireRole(['mayor', 'zonal_officer', 'gram_panchayat']), (req, res) => {
+    res.json(readData(reportsFile));
 });
 
-// API: Get Single Complaint by ID (for Residents/Tracking)
+// GET single complaint for tracking (public)
 app.get('/api/complaints/:id', (req, res) => {
-    const reports = readReports();
-    const searchId = req.params.id.toUpperCase();
-    const report = reports.find(r => r.id.toUpperCase() === searchId);
-    
-    if (!report) {
-        return res.status(404).json({ error: 'Report not found. Please check your Ticket ID.' });
-    }
-    
+    const reports = readData(reportsFile);
+    const report = reports.find(r => r.id.toLowerCase() === req.params.id.toLowerCase());
+    if (!report) return res.status(404).json({ error: 'Report not found' });
     res.json(report);
 });
 
-// API: Update Complaint Status
-app.patch('/api/complaints/:id', (req, res) => {
+app.patch('/api/complaints/:id', requireAuth, requireRole(['mayor', 'zonal_officer', 'gram_panchayat']), (req, res) => {
     const { status } = req.body;
-    const reports = readReports();
+    const reports = readData(reportsFile);
     const index = reports.findIndex(r => r.id === req.params.id);
 
     if (index === -1) return res.status(404).json({ error: 'Report not found' });
 
     reports[index].status = status;
-    writeReports(reports);
+    writeData(reportsFile, reports);
+    logAudit('COMPLAINT_UPDATE', req.user.userId, req.params.id, `Status set to ${status}`);
     res.json(reports[index]);
 });
 
-// API: Get Notifications (Mock).
-app.get('/api/notifications', (req, res) => {
-    res.json(notifications);
+// Open route for public to submit reports
+app.post('/api/complaints', upload.single('image'), (req, res) => {
+    const { location, wasteType, confidence } = req.body;
+    if (!req.file || !location || !wasteType) return res.status(400).json({ error: 'Data incomplete' });
+
+    const reports = readData(reportsFile);
+    const newReport = {
+        id: 'RD-' + Date.now().toString().slice(-6),
+        imageUrl: `/uploads/${req.file.filename}`,
+        location, wasteType, confidence,
+        status: 'Pending',
+        timestamp: new Date().toISOString()
+    };
+    reports.push(newReport);
+    writeData(reportsFile, reports);
+    res.status(201).json(newReport);
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 KachraDarpan Backend running on port ${PORT}`);
-});
+// --- EMAIL HELPER ---
+async function sendEmailOTP(email, otp, userName, subjectPrefix) {
+    const { EMAIL_USER, EMAIL_PASS } = process.env;
+    if (EMAIL_USER && EMAIL_PASS) {
+        try {
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: { user: EMAIL_USER, pass: EMAIL_PASS }
+            });
+            await transporter.sendMail({
+                from: `"KachraDarpan Security" <${EMAIL_USER}>`,
+                to: email,
+                subject: `${subjectPrefix} Code`,
+                html: `<div style="font-family:sans-serif;border:1px solid #ddd;padding:20px;border-radius:10px;">
+                    <h2>KachraDarpan Verification</h2>
+                    <p>Hello ${userName},</p>
+                    <p>Your code is: <b style="font-size:24px;color:#10b981;">${otp}</b></p>
+                    <p>Valid for 10 minutes.</p>
+                </div>`
+            });
+        } catch (e) { console.error("Mail error:", e); }
+    } else {
+        console.log(`\n[MOCK EMAIL] To: ${email} | Code: ${otp} | Subject: ${subjectPrefix}\n`);
+    }
+}
+
+app.listen(PORT, () => console.log(`🚀 KachraDarpan SECURE Backend on port ${PORT}`));

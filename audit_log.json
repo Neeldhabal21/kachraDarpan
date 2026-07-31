@@ -1,0 +1,37 @@
+[
+  {
+    "timestamp": "2026-04-21T19:37:43.681Z",
+    "action": "USER_REGISTER",
+    "actor": "system",
+    "target": "testuser",
+    "details": "New citizen registered"
+  },
+  {
+    "timestamp": "2026-04-21T19:40:35.412Z",
+    "action": "USER_REGISTER",
+    "actor": "system",
+    "target": "testuser3",
+    "details": "New citizen registered"
+  },
+  {
+    "timestamp": "2026-04-21T20:19:18.421Z",
+    "action": "USER_REGISTER",
+    "actor": "system",
+    "target": "test_officer_new",
+    "details": "New mayor registered"
+  },
+  {
+    "timestamp": "2026-04-21T20:23:32.977Z",
+    "action": "USER_REGISTER",
+    "actor": "system",
+    "target": "Neel01",
+    "details": "New mayor registered"
+  },
+  {
+    "timestamp": "2026-07-31T17:00:15.880Z",
+    "action": "USER_REGISTER",
+    "actor": "system",
+    "target": "Neel",
+    "details": "New mayor registered"
+  }
+]

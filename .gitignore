@@ -6,3 +6,4 @@ reports.json
 users.json
 .vcode/
 .DS_Store
+.env

@@ -70,5 +70,53 @@
     "role": "Officer",
     "name": "Mr.Neel Dhabal",
     "email": "neeldhabal@gmail.com"
+  },
+  "25BCS10491": {
+    "password": "1",
+    "role": "Mayor",
+    "name": "Neel Dhabal",
+    "email": "neeldhabal@gmail.com"
+  },
+  "mayor_admin": {
+    "password": "$2b$10$PhT1jFBTMdg1Kw27eS.8M.aAIeZNI15SG0v/19l4ujfrnCqdV60yG",
+    "role": "mayor",
+    "name": "Chief Mayor Rajesh",
+    "email": "kachradarpan@gmail.com",
+    "createdAt": "2026-04-21T19:30:26.627Z"
+  },
+  "testuser": {
+    "password": "$2b$10$ZQp5hC1ZKUGgI3.Xd69uFOdGPFc2XVJKtCeGfRFQ.GkQk514oWy.C",
+    "role": "citizen",
+    "name": "Test User",
+    "email": "test@example.com",
+    "createdAt": "2026-04-21T19:37:43.680Z"
+  },
+  "testuser3": {
+    "password": "$2b$10$YlvjTuby9aIR7.wWTg.h5OCI6e1u7ssWDXzADFqTlsAi/awPUyFmi",
+    "role": "citizen",
+    "name": "Test Three",
+    "email": "test3@example.com",
+    "createdAt": "2026-04-21T19:40:35.410Z"
+  },
+  "test_officer_new": {
+    "password": "$2b$10$K6un2GQn.qCC1kNmCbLbxurcOdDeGfOdU9Iz7lMREKDiho1gbghqy",
+    "role": "mayor",
+    "name": "Test User",
+    "email": "test_new@example.com",
+    "createdAt": "2026-04-21T20:19:18.418Z"
+  },
+  "Neel01": {
+    "password": "$2b$10$yHAsmNg63ANHox.st22mGOsQwHtXV/rOuNiHU9SBsdcsgG2XeHb.K",
+    "role": "mayor",
+    "name": "Neel Dhabal",
+    "email": "neeldhabal@gmail940.com",
+    "createdAt": "2026-04-21T20:23:32.975Z"
+  },
+  "Neel": {
+    "password": "$2b$10$9gkl8aR/xBIbdELipe7XW.0ji40cjvtu.rXKgTfgQIP9Ine1YYINe",
+    "role": "mayor",
+    "name": "Neel Dhabal",
+    "email": "25BCS10491@cuchd.in",
+    "createdAt": "2026-07-31T17:00:15.879Z"
   }
 }

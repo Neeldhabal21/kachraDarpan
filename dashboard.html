@@ -122,7 +122,9 @@
 
         async function loadDashboard() {
             try {
-                const res = await fetch(`${BASE_URL}/api/complaints`);
+                const res = await fetch(`${BASE_URL}/api/complaints`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('kd_token') }
+                });
                 allComplaints = await res.json();
                 
                 const searchTerm = document.getElementById('dashboard-search').value.toLowerCase();
@@ -176,7 +178,10 @@
         async function updateStatus(id, status) {
             await fetch(`${BASE_URL}/api/complaints/${id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('kd_token')
+                },
                 body: JSON.stringify({ status })
             });
             loadDashboard();

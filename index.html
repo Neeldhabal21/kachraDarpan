@@ -136,7 +136,7 @@
   </main>
 
   <footer style="margin-top: 40px; color: var(--text-dim); font-size: 0.8rem; padding: 40px;">
-    &copy; 2026 KachraDarpan Technologies • DeepMind AI Integrated
+    &copy; 2026 KachraDarpan Technologies • Dev by Neel
   </footer>
 
   <script src="ai_logic.js"></script>
@@ -305,11 +305,11 @@
 
           resultDiv.style.display = 'block';
         } else {
-          errorDiv.innerText = data.error || "Report Not Found";
+          errorDiv.innerText = data.error || "Report not found";
           errorDiv.style.display = 'block';
         }
       } catch (err) {
-        errorDiv.innerText = "Connection failed. Please ensure the backend server is running.";
+        errorDiv.innerText = "Unable to connect with backend server. contact - kachradarpan@gmail.com. to fix the eror";
         errorDiv.style.display = 'block';
       } finally {
         btn.innerText = 'Track';
@@ -319,3 +319,4 @@
   </script>
 </body>
 </html>
+
